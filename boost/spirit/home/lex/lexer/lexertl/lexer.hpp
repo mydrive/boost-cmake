@@ -147,7 +147,7 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
     class lexer 
     {
     private:
-        struct dummy { void true_() {}; };
+        struct dummy { void true_() {} };
         typedef void (dummy::*safe_bool)();
 
         static std::size_t const all_states_id = static_cast<std::size_t>(-2);
@@ -221,22 +221,32 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
     public:
         // interface for token definition management
         std::size_t add_token(char_type const* state, char_type tokendef, 
-            std::size_t token_id)
+            std::size_t token_id, char_type const* targetstate)
         {
             add_state(state);
             initialized_dfa_ = false;
             if (state == all_states())
                 return rules_.add(state, detail::escape(tokendef), token_id, rules_.dot());
-            return rules_.add(state, detail::escape(tokendef), token_id, state);
+
+            if (0 == targetstate)
+                targetstate = state;
+            else
+                add_state(targetstate);
+            return rules_.add(state, detail::escape(tokendef), token_id, targetstate);
         }
         std::size_t add_token(char_type const* state, string_type const& tokendef, 
-            std::size_t token_id)
+            std::size_t token_id, char_type const* targetstate)
         {
             add_state(state);
             initialized_dfa_ = false;
             if (state == all_states())
                 return rules_.add(state, tokendef, token_id, rules_.dot());
-            return rules_.add(state, tokendef, token_id, state);
+
+            if (0 == targetstate)
+                targetstate = state;
+            else
+                add_state(targetstate);
+            return rules_.add(state, tokendef, token_id, targetstate);
         }
 
         // interface for pattern definition management
@@ -280,7 +290,7 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
 
         //  Register a semantic action with the given id
         template <typename F>
-        void add_action(id_type unique_id, std::size_t state, F act)
+        void add_action(std::size_t unique_id, std::size_t state, F act)
         {
             // If you see an error here stating add_action is not a member of
             // fusion::unused_type then you are probably having semantic actions 
@@ -300,7 +310,7 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
             }
         }
 //         template <typename F>
-//         void add_action(id_type unique_id, char_type const* state, F act)
+//         void add_action(std::size_t unique_id, char_type const* state, F act)
 //         {
 //             typedef typename Functor::wrap_action_type wrapper_type;
 //             actions_.add_action(unique_id, add_state(state), wrapper_type::call(act));

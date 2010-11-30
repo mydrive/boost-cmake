@@ -117,7 +117,9 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
                 // The following assertion fires most likely because you are 
                 // using lexer semantic actions without using the actor_lexer
                 // as the base class for your token definition class.
-                BOOST_ASSERT(false);
+                BOOST_ASSERT(false && 
+                    "Are you using lexer semantic actions without using the "
+                    "actor_lexer base?");
                 return it; 
             }
 
@@ -134,7 +136,9 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
                 // The following assertion fires most likely because you are 
                 // using lexer semantic actions without using the actor_lexer
                 // as the base class for your token definition class.
-                BOOST_ASSERT(false); 
+                BOOST_ASSERT(false && 
+                    "Are you using lexer semantic actions without using the "
+                    "actor_lexer base?"); 
             }
             bool adjust_start() { return false; }
             void revert_adjust_start() {}
@@ -146,12 +150,14 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
             //
             // This function does nothing as long as no semantic actions are 
             // used.
-            bool lookahead(std::size_t id) 
+            bool lookahead(std::size_t id, std::size_t state = std::size_t(~0)) 
             { 
                 // The following assertion fires most likely because you are 
                 // using lexer semantic actions without using the actor_lexer
                 // as the base class for your token definition class.
-                BOOST_ASSERT(false);
+                BOOST_ASSERT(false && 
+                    "Are you using lexer semantic actions without using the "
+                    "actor_lexer base?");
                 return false; 
             }
 
@@ -160,9 +166,11 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
 
             // The function next() tries to match the next token from the 
             // underlying input sequence. 
-            std::size_t next(Iterator& end, std::size_t& unique_id)
+            std::size_t next(Iterator& end, std::size_t& unique_id, bool& prev_bol)
             {
-                std::size_t state;
+                prev_bol = bol_;
+
+                std::size_t state = 0;
                 return next_token_(state, bol_, end, last_, unique_id);
             }
 
@@ -187,6 +195,8 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
             bool has_value() const { return false; }
             void reset_value() {}
 
+            void reset_bol(bool bol) { bol_ = bol; }
+
         protected:
             Iterator& first_;
             Iterator last_;
@@ -202,7 +212,7 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
         };
 
         ///////////////////////////////////////////////////////////////////////
-        //  doesn't support no actors
+        //  doesn't support no actors, but does support states
         template <typename Iterator, typename TokenValue>
         struct static_data<Iterator, mpl::false_, mpl::true_, TokenValue>
           : static_data<Iterator, mpl::false_, mpl::false_, TokenValue>
@@ -257,8 +267,9 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
 
             // The function next() tries to match the next token from the 
             // underlying input sequence. 
-            std::size_t next(Iterator& end, std::size_t& unique_id)
+            std::size_t next(Iterator& end, std::size_t& unique_id, bool& prev_bol)
             {
+                prev_bol = this->bol_;
                 return this->next_token_(state_, this->bol_, end, this->last_
                   , unique_id);
             }
@@ -345,11 +356,17 @@ namespace boost { namespace spirit { namespace lex { namespace lexertl
             // support function lex::lookahead. It can be used to implement 
             // lookahead for lexer engines not supporting constructs like flex'
             // a/b  (match a, but only when followed by b)
-            bool lookahead(std::size_t id)
+            bool lookahead(std::size_t id, std::size_t state = std::size_t(~0))
             {
-                Iterator end = this->first_;
+                Iterator end = end_;
                 std::size_t unique_id = boost::lexer::npos;
-                return id == this->next(end, unique_id);
+                bool bol = this->bol_;
+
+                if (std::size_t(~0) == state)
+                    state = this->state_;
+
+                return id == this->next_token_(
+                    state, bol, end, this->last_, unique_id);
             }
 
             // The adjust_start() and revert_adjust_start() are helper 
