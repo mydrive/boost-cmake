@@ -9,5 +9,5 @@ dist/
 .\#*
 *.tar.*
 *.zip
-/tools/build/CMake/docs/build
+#/tools/build/CMake/docs/build
 
